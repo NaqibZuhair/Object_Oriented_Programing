@@ -12,6 +12,7 @@ import model.Laporan;
 import javax.swing.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.sql.*;
 
 public class DashboardController {
     private DashboardView view;
