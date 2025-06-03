@@ -19,12 +19,12 @@
   <component name="DBNavigator.Project.DatabaseBrowserManager">
     <autoscroll-to-editor value="false" />
     <autoscroll-from-editor value="true" />
-    <show-object-properties value="true" />
+    <show-object-properties value="false" />
     <loaded-nodes />
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="c6bb2042-5fd7-4507-9349-38909130e019">
-      <console name="COMPANY ASSIGNMENT" type="STANDARD" schema="pbo_inventori_inhuntani" session="Main"><![CDATA[select * FROM LAPORAN;]]></console>
+      <console name="COMPANY ASSIGNMENT" type="STANDARD" schema="pbo_inventori_inhuntani" session="Main"><![CDATA[select * FROM BARANG;]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
