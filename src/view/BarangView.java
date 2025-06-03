@@ -1,13 +1,18 @@
 package view;
 
+import java.util.Date;
+import java.text.ParseException;
 import javax.swing.*;
 import java.awt.*;
+
+import controller.BarangController;
 import model.Barang;
 
 public class BarangView extends JFrame {
     private JTextField idField, jenisField, stokField, masukField, keluarField, tanggalField;
     private JButton tambahButton, editButton, hapusButton, cariButton;
     private JTextArea displayArea;
+    private BarangController controller;
 
     public BarangView() {
         setTitle("Manajemen Barang");
@@ -67,16 +72,21 @@ public class BarangView extends JFrame {
 
     public Barang getInputData() {
         try {
+            // Validasi dan format tanggal sebelum mengirimkan ke controller
+            String tanggalFormatted = controller.formatDate(tanggalField.getText());
             return new Barang(
-                idField.getText(),
-                jenisField.getText(),
-                Integer.parseInt(stokField.getText()),
-                Integer.parseInt(masukField.getText()),
-                Integer.parseInt(keluarField.getText()),
-                tanggalField.getText()
+                    idField.getText(),
+                    jenisField.getText(),
+                    Integer.parseInt(stokField.getText()),
+                    Integer.parseInt(masukField.getText()),
+                    Integer.parseInt(keluarField.getText()),
+                    tanggalFormatted  // Menggunakan tanggal yang sudah diformat
             );
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Stok, Barang Masuk, dan Barang Keluar harus berupa angka!", "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        } catch (ParseException e) {
+            JOptionPane.showMessageDialog(this, "Format tanggal salah! Harus dalam format dd-MM-yyyy.", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
         }
     }

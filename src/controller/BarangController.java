@@ -1,5 +1,8 @@
 package controller;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.text.ParseException;
 import model.Barang;
 import view.BarangView;
 import javax.swing.*;
@@ -13,6 +16,8 @@ import java.awt.event.*;
 public class BarangController {
     private ArrayList<Barang> barangList;
     private BarangView view;
+
+
 
     public BarangController(BarangView view, ArrayList<Barang> barangList) {
         this.view = view;
@@ -49,6 +54,14 @@ public class BarangController {
         updateDisplay();
     }
 
+    // Metode untuk mengubah format tanggal
+    public String formatDate(String inputDate) throws ParseException {
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd-MM-yyyy");  // Format input
+        SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd");  // Format yang diterima MySQL
+        Date date = inputFormat.parse(inputDate);  // Mengubah string tanggal ke format Date
+        return outputFormat.format(date);  // Mengubah Date ke string dengan format yang diinginkan
+    }
+
     private void tambahData() {
         Barang barang = view.getInputData();
         if (barang != null && !barang.getIdBarang().isEmpty()) {
@@ -63,20 +76,22 @@ public class BarangController {
                     stmt.setInt(3, barang.getStokGudang());
                     stmt.setInt(4, barang.getBarangMasuk());
                     stmt.setInt(5, barang.getBarangKeluar());
-                    stmt.setString(6, barang.getTanggal());
 
-                    stmt.executeUpdate();
-                    JOptionPane.showMessageDialog(view, "Data berhasil ditambahkan!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+                    // Format tanggal dan masukkan ke dalam query
+                    String tanggalFormatted = formatDate(barang.getTanggal());  // Panggil formatDate untuk mengubah format tanggal
+                    stmt.setString(6, tanggalFormatted);  // Menggunakan tanggal yang sudah diformat
+
+                    int rowsAffected = stmt.executeUpdate();
+                    if (rowsAffected > 0) {
+                        System.out.println("Data berhasil ditambahkan ke database.");
+                    } else {
+                        System.out.println("Data gagal ditambahkan.");
+                    }
                 }
-            } catch (SQLException e) {
+            } catch (SQLException | ParseException e) {
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(view, "Gagal menambahkan data!", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Error saat menambahkan data ke database: " + e.getMessage());
             }
-
-            updateDisplay();
-            JOptionPane.showMessageDialog(view, "Data berhasil ditambahkan!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            JOptionPane.showMessageDialog(view, "ID Barang tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

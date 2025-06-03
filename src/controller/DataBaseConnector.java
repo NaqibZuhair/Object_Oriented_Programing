@@ -7,7 +7,7 @@ import java.sql.SQLException;
 public class DataBaseConnector {
     private static final String URL = "jdbc:mysql://127.0.0.1:3306/pbo_inventori_inhuntani";
     private static final String USER = "root";
-    private static final String PASSWORD = "";
+    private static final String PASSWORD = "Naqibhudri11";
     public static Connection connect() throws SQLException {
         try {
             // Memuat driver MySQL secara eksplisit (untuk kompatibilitas lebih baik)
