@@ -17,11 +17,10 @@ public class BarangController {
     private ArrayList<Barang> barangList;
     private BarangView view;
 
-
-
     public BarangController(BarangView view, ArrayList<Barang> barangList) {
         this.view = view;
         this.barangList = barangList;
+        view.setController(this);
 
         view.getTambahButton().addActionListener(new ActionListener() {
             @Override
@@ -54,12 +53,11 @@ public class BarangController {
         updateDisplay();
     }
 
-    // Metode untuk mengubah format tanggal
     public String formatDate(String inputDate) throws ParseException {
-        SimpleDateFormat inputFormat = new SimpleDateFormat("dd-MM-yyyy");  // Format input
-        SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd");  // Format yang diterima MySQL
-        Date date = inputFormat.parse(inputDate);  // Mengubah string tanggal ke format Date
-        return outputFormat.format(date);  // Mengubah Date ke string dengan format yang diinginkan
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd-MM-yyyy");
+        SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd");
+        Date date = inputFormat.parse(inputDate);
+        return outputFormat.format(date);
     }
 
     private void tambahData() {
@@ -67,7 +65,6 @@ public class BarangController {
         if (barang != null && !barang.getIdBarang().isEmpty()) {
             barangList.add(barang);
 
-            // Menambahkan data ke database
             try (Connection conn = DataBaseConnector.connect()) {
                 String query = "INSERT INTO barang (idBarang, jenisBarang, stokGudang, barangMasuk, barangKeluar, tanggal) VALUES (?, ?, ?, ?, ?, ?)";
                 try (PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -76,10 +73,8 @@ public class BarangController {
                     stmt.setInt(3, barang.getStokGudang());
                     stmt.setInt(4, barang.getBarangMasuk());
                     stmt.setInt(5, barang.getBarangKeluar());
-
-                    // Format tanggal dan masukkan ke dalam query
-                    String tanggalFormatted = formatDate(barang.getTanggal());  // Panggil formatDate untuk mengubah format tanggal
-                    stmt.setString(6, tanggalFormatted);  // Menggunakan tanggal yang sudah diformat
+                    String tanggalFormatted = formatDate(barang.getTanggal());
+                    stmt.setString(6, tanggalFormatted);
 
                     int rowsAffected = stmt.executeUpdate();
                     if (rowsAffected > 0) {
@@ -92,6 +87,7 @@ public class BarangController {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null, "Error saat menambahkan data ke database: " + e.getMessage());
             }
+            updateDisplay();
         }
     }
 
@@ -103,7 +99,6 @@ public class BarangController {
                 if (barangList.get(i).getIdBarang().equals(id)) {
                     barangList.set(i, newData);
 
-                    // Mengupdate data di database
                     try (Connection conn = DataBaseConnector.connect()) {
                         String query = "UPDATE barang SET jenisBarang = ?, stokGudang = ?, barangMasuk = ?, barangKeluar = ?, tanggal = ? WHERE idBarang = ?";
                         try (PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -123,7 +118,6 @@ public class BarangController {
                     }
 
                     updateDisplay();
-                    JOptionPane.showMessageDialog(view, "Data berhasil diubah!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
             }
@@ -140,12 +134,10 @@ public class BarangController {
                 if (barangList.get(i).getIdBarang().equals(id)) {
                     barangList.remove(i);
 
-                    // Menghapus data di database
                     try (Connection conn = DataBaseConnector.connect()) {
                         String query = "DELETE FROM barang WHERE idBarang = ?";
                         try (PreparedStatement stmt = conn.prepareStatement(query)) {
                             stmt.setString(1, id);
-
                             stmt.executeUpdate();
                             JOptionPane.showMessageDialog(view, "Data berhasil dihapus!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
                         }
@@ -155,7 +147,6 @@ public class BarangController {
                     }
 
                     updateDisplay();
-                    JOptionPane.showMessageDialog(view, "Data berhasil dihapus!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
             }
@@ -166,56 +157,46 @@ public class BarangController {
     }
 
     private void cariData() {
-        String id = view.getSearchId();
-        if (!id.isEmpty()) {
+        String searchTerm = view.getSearchId();
+        if (!searchTerm.isEmpty()) {
+            ArrayList<Barang> filteredList = new ArrayList<>();
             for (Barang barang : barangList) {
-                if (barang.getIdBarang().equals(id)) {
-                    view.setDisplayText(
-                        "ID Barang: " + barang.getIdBarang() + "\n" +
-                        "Jenis Barang: " + barang.getJenisBarang() + "\n" +
-                        "Stok Gudang: " + barang.getStokGudang() + "\n" +
-                        "Barang Masuk: " + barang.getBarangMasuk() + "\n" +
-                        "Barang Keluar: " + barang.getBarangKeluar() + "\n" +
-                        "Tanggal: " + barang.getTanggal()
-                    );
-                    return;
+                if (barang.getIdBarang().equals(searchTerm) || barang.getJenisBarang().toLowerCase().contains(searchTerm.toLowerCase())) {
+                    filteredList.add(barang);
                 }
             }
-            view.setDisplayText("Data tidak ditemukan!");
+            if (!filteredList.isEmpty()) {
+                view.updateTable(filteredList);
+            } else {
+                view.setDisplayText("Data tidak ditemukan!");
+            }
         } else {
             view.setDisplayText("Masukkan ID Barang untuk pencarian!");
         }
     }
 
     private void updateDisplay() {
-        StringBuilder sb = new StringBuilder();
         try (Connection conn = DataBaseConnector.connect()) {
-            String query = "SELECT * FROM barang"; // Pastikan query benar
+            String query = "SELECT * FROM barang";
             try (PreparedStatement stmt = conn.prepareStatement(query);
                  ResultSet rs = stmt.executeQuery()) {
-
+                ArrayList<Barang> dbList = new ArrayList<>();
                 while (rs.next()) {
-                    String idBarang = rs.getString("idBarang");
-                    String jenisBarang = rs.getString("jenisBarang");
-                    int stokGudang = rs.getInt("stokGudang");
-                    int barangMasuk = rs.getInt("barangMasuk");
-                    int barangKeluar = rs.getInt("barangKeluar");
-                    String tanggal = rs.getString("tanggal");
-
-                    sb.append("ID: ").append(idBarang)
-                            .append(", Jenis: ").append(jenisBarang)
-                            .append(", Stok: ").append(stokGudang)
-                            .append(", Masuk: ").append(barangMasuk)
-                            .append(", Keluar: ").append(barangKeluar)
-                            .append(", Tanggal: ").append(tanggal)
-                            .append("\n");
+                    dbList.add(new Barang(
+                        rs.getString("idBarang"),
+                        rs.getString("jenisBarang"),
+                        rs.getInt("stokGudang"),
+                        rs.getInt("barangMasuk"),
+                        rs.getInt("barangKeluar"),
+                        rs.getString("tanggal")
+                    ));
                 }
+                view.updateTable(dbList);
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            view.setDisplayText("Error fetching data from database!");
         }
-
-        view.setDisplayText(sb.toString());
     }
 
     public BarangView getView() { return view; }

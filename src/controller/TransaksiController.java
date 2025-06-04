@@ -3,6 +3,10 @@ package controller;
 import model.Transaksi;
 import view.TransaksiView;
 import javax.swing.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.awt.event.*;
 
@@ -49,6 +53,30 @@ public class TransaksiController {
         Transaksi transaksi = view.getInputData();
         if (transaksi != null && !transaksi.getIdTransaksi().isEmpty()) {
             transaksiList.add(transaksi);
+
+            // Menambahkan data ke database
+            try (Connection conn = DataBaseConnector.connect()) {
+                String query = "INSERT INTO transaksi (idTransaksi, tanggal, namaPelanggan, jenisBarang, jumlah, statusPembayaran) VALUES (?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    stmt.setString(1, transaksi.getIdTransaksi());
+                    stmt.setString(2, transaksi.getTanggal());
+                    stmt.setString(3, transaksi.getNamaPelanggan());
+                    stmt.setString(4, transaksi.getJenisBarang());
+                    stmt.setInt(5, transaksi.getJumlah());
+                    stmt.setString(6, transaksi.getStatusPembayaran());
+
+                    int rowsAffected = stmt.executeUpdate();
+                    if (rowsAffected > 0) {
+                        System.out.println("Data transaksi berhasil ditambahkan ke database.");
+                    } else {
+                        System.out.println("Data transaksi gagal ditambahkan.");
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(view, "Error saat menambahkan data ke database: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+
             updateDisplay();
             JOptionPane.showMessageDialog(view, "Data berhasil ditambahkan!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
         } else {
@@ -63,8 +91,27 @@ public class TransaksiController {
             for (int i = 0; i < transaksiList.size(); i++) {
                 if (transaksiList.get(i).getIdTransaksi().equals(id)) {
                     transaksiList.set(i, newData);
+
+                    // Mengupdate data di database
+                    try (Connection conn = DataBaseConnector.connect()) {
+                        String query = "UPDATE transaksi SET tanggal = ?, namaPelanggan = ?, jenisBarang = ?, jumlah = ?, statusPembayaran = ? WHERE idTransaksi = ?";
+                        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                            stmt.setString(1, newData.getTanggal());
+                            stmt.setString(2, newData.getNamaPelanggan());
+                            stmt.setString(3, newData.getJenisBarang());
+                            stmt.setInt(4, newData.getJumlah());
+                            stmt.setString(5, newData.getStatusPembayaran());
+                            stmt.setString(6, id);
+
+                            stmt.executeUpdate();
+                            JOptionPane.showMessageDialog(view, "Data berhasil diubah!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(view, "Gagal mengubah data!", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+
                     updateDisplay();
-                    JOptionPane.showMessageDialog(view, "Data berhasil diubah!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
             }
@@ -80,8 +127,21 @@ public class TransaksiController {
             for (int i = 0; i < transaksiList.size(); i++) {
                 if (transaksiList.get(i).getIdTransaksi().equals(id)) {
                     transaksiList.remove(i);
+
+                    // Menghapus data di database
+                    try (Connection conn = DataBaseConnector.connect()) {
+                        String query = "DELETE FROM transaksi WHERE idTransaksi = ?";
+                        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                            stmt.setString(1, id);
+                            stmt.executeUpdate();
+                            JOptionPane.showMessageDialog(view, "Data berhasil dihapus!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(view, "Gagal menghapus data!", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+
                     updateDisplay();
-                    JOptionPane.showMessageDialog(view, "Data berhasil dihapus!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
             }
@@ -92,39 +152,46 @@ public class TransaksiController {
     }
 
     private void cariData() {
-        String id = view.getSearchId();
-        if (!id.isEmpty()) {
+        String searchTerm = view.getSearchId();
+        if (!searchTerm.isEmpty()) {
+            ArrayList<Transaksi> filteredList = new ArrayList<>();
             for (Transaksi transaksi : transaksiList) {
-                if (transaksi.getIdTransaksi().equals(id)) {
-                    view.setDisplayText(
-                        "ID Transaksi: " + transaksi.getIdTransaksi() + "\n" +
-                        "Tanggal: " + transaksi.getTanggal() + "\n" +
-                        "Nama Pelanggan: " + transaksi.getNamaPelanggan() + "\n" +
-                        "Jenis Barang: " + transaksi.getJenisBarang() + "\n" +
-                        "Jumlah: " + transaksi.getJumlah() + "\n" +
-                        "Status Pembayaran: " + transaksi.getStatusPembayaran()
-                    );
-                    return;
+                if (transaksi.getIdTransaksi().equals(searchTerm) || transaksi.getNamaPelanggan().toLowerCase().contains(searchTerm.toLowerCase())) {
+                    filteredList.add(transaksi);
                 }
             }
-            view.setDisplayText("Data tidak ditemukan!");
+            if (!filteredList.isEmpty()) {
+                view.updateTable(filteredList);
+            } else {
+                view.setDisplayText("Data tidak ditemukan!");
+            }
         } else {
-            view.setDisplayText("Masukkan ID Transaksi untuk pencarian!");
+            view.setDisplayText("Masukkan ID Transaksi atau Nama Pelanggan untuk pencarian!");
         }
     }
 
     private void updateDisplay() {
-        StringBuilder sb = new StringBuilder();
-        for (Transaksi transaksi : transaksiList) {
-            sb.append("ID: ").append(transaksi.getIdTransaksi())
-              .append(", Tanggal: ").append(transaksi.getTanggal())
-              .append(", Pelanggan: ").append(transaksi.getNamaPelanggan())
-              .append(", Jenis: ").append(transaksi.getJenisBarang())
-              .append(", Jumlah: ").append(transaksi.getJumlah())
-              .append(", Status: ").append(transaksi.getStatusPembayaran())
-              .append("\n");
+        try (Connection conn = DataBaseConnector.connect()) {
+            String query = "SELECT * FROM transaksi";
+            try (PreparedStatement stmt = conn.prepareStatement(query);
+                 ResultSet rs = stmt.executeQuery()) {
+                ArrayList<Transaksi> dbList = new ArrayList<>();
+                while (rs.next()) {
+                    dbList.add(new Transaksi(
+                        rs.getString("idTransaksi"),
+                        rs.getString("tanggal"),
+                        rs.getString("namaPelanggan"),
+                        rs.getString("jenisBarang"),
+                        rs.getInt("jumlah"),
+                        rs.getString("statusPembayaran")
+                    ));
+                }
+                view.updateTable(dbList);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            view.setDisplayText("Error fetching data from database!");
         }
-        view.setDisplayText(sb.toString());
     }
 
     public TransaksiView getView() { return view; }
