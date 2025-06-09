@@ -68,11 +68,37 @@ public class DashboardController {
     }
 
     private void updateSummary() {
+        // Mengambil data barang dari database
+        loadDataFromDatabase();
+
         String summary = String.format(
-            "Ringkasan:\n- Barang: %d item\n- Transaksi: %d transaksi\n- Operasional: %d transaksi\n- Laporan: %d laporan",
-            barangList.size(), transaksiList.size(), operasionalList.size(), laporanList.size()
+                "Ringkasan:\n- Barang: %d item\n- Transaksi: %d transaksi\n- Operasional: %d transaksi\n- Laporan: %d laporan",
+                barangList.size(), transaksiList.size(), operasionalList.size(), laporanList.size()
         );
         view.setSummaryText(summary);
+    }
+
+    private void loadDataFromDatabase() {
+        try (Connection conn = DataBaseConnector.connect()) {
+            String query = "SELECT * FROM barang";
+            try (PreparedStatement stmt = conn.prepareStatement(query);
+                 ResultSet rs = stmt.executeQuery()) {
+                barangList.clear();  // Pastikan barangList kosong sebelum mengisi data baru
+                while (rs.next()) {
+                    barangList.add(new Barang(
+                            rs.getString("idBarang"),
+                            rs.getString("jenisBarang"),
+                            rs.getInt("stokGudang"),
+                            rs.getInt("barangMasuk"),
+                            rs.getInt("barangKeluar"),
+                            rs.getString("tanggal")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(view, "Error fetching data from database!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public DashboardView getView() { return view; }

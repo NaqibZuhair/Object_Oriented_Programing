@@ -54,10 +54,17 @@ public class BarangController {
     }
 
     public String formatDate(String inputDate) throws ParseException {
-        SimpleDateFormat inputFormat = new SimpleDateFormat("dd-MM-yyyy");
-        SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd");
-        Date date = inputFormat.parse(inputDate);
-        return outputFormat.format(date);
+        SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd");  // Format yang dimasukkan oleh user
+        inputFormat.setLenient(false);  // Nonaktifkan leniency untuk memastikan input valid
+
+        try {
+            Date date = inputFormat.parse(inputDate);  // Mengonversi input ke Date
+            SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd"); // Format yang diterima oleh database
+            return outputFormat.format(date);  // Mengonversi Date ke format yang diterima oleh database
+        } catch (ParseException e) {
+            // Jika format salah, lemparkan kembali exception
+            throw new ParseException("Format tanggal salah! Harus dalam format yyyy-MM-dd.", e.getErrorOffset());
+        }
     }
 
     private void tambahData() {
@@ -92,63 +99,43 @@ public class BarangController {
     }
 
     private void editData() {
-        // Ambil ID Barang dari input
-        String id = view.getSearchId().trim();
-        System.out.println("Search ID: " + id); // Debugging output
+        // Ambil data yang sudah diedit di kolom input
+        Barang newData = view.getInputData();  // Mendapatkan data yang telah diubah
 
-        if (id != null && !id.isEmpty()) {
-            // Ambil data baru yang dimasukkan pengguna
-            Barang newData = view.getInputData(); // Ambil data baru dari form input
+        if (newData != null) {
+            String id = newData.getIdBarang();  // Ambil ID yang akan diedit
 
-            if (newData != null) {
-                boolean found = false;
-                // Cari barang dengan ID yang sesuai di barangList
-                for (int i = 0; i < barangList.size(); i++) {
-                    System.out.println("Checking ID: " + barangList.get(i).getIdBarang() + " vs " + id); // Debugging output
-                    if (barangList.get(i).getIdBarang().equals(id)) {
-                        found = true;
-                        barangList.set(i, newData);  // Mengganti barang lama dengan yang baru
-                        break;
+            try (Connection conn = DataBaseConnector.connect()) {
+                String query = "UPDATE barang SET jenisBarang = ?, stokGudang = ?, barangMasuk = ?, barangKeluar = ?, tanggal = ? WHERE idBarang = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    // Set data baru yang diinputkan ke dalam query
+                    stmt.setString(1, newData.getJenisBarang());
+                    stmt.setInt(2, newData.getStokGudang());
+                    stmt.setInt(3, newData.getBarangMasuk());
+                    stmt.setInt(4, newData.getBarangKeluar());
+                    stmt.setString(5, newData.getTanggal());
+                    stmt.setString(6, id);  // ID Barang untuk menentukan data yang akan diupdate
+
+                    int rowsAffected = stmt.executeUpdate(); // Eksekusi query UPDATE
+
+                    if (rowsAffected > 0) {
+                        JOptionPane.showMessageDialog(view, "Data berhasil diubah!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+
+                        // Setelah data berhasil diubah, perbarui tampilan tabel
+                        updateDisplay();  // Memperbarui tabel dengan data terbaru
+                    } else {
+                        JOptionPane.showMessageDialog(view, "Gagal mengubah data!", "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 }
-
-                if (found) {
-                    // Update data di database
-                    try (Connection conn = DataBaseConnector.connect()) {
-                        String query = "UPDATE barang SET jenisBarang = ?, stokGudang = ?, barangMasuk = ?, barangKeluar = ?, tanggal = ? WHERE idBarang = ?";
-                        try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                            stmt.setString(1, newData.getJenisBarang());
-                            stmt.setInt(2, newData.getStokGudang());
-                            stmt.setInt(3, newData.getBarangMasuk());
-                            stmt.setInt(4, newData.getBarangKeluar());
-                            stmt.setString(5, newData.getTanggal());
-                            stmt.setString(6, id); // ID Barang untuk menentukan data yang akan diupdate
-
-                            // Debugging: Menampilkan query yang dijalankan
-                            System.out.println("Executing query: " + stmt.toString());
-
-                            int rowsAffected = stmt.executeUpdate(); // Eksekusi query UPDATE
-                            if (rowsAffected > 0) {
-                                JOptionPane.showMessageDialog(view, "Data berhasil diubah!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
-                            } else {
-                                JOptionPane.showMessageDialog(view, "Gagal mengubah data!", "Error", JOptionPane.ERROR_MESSAGE);
-                            }
-                        }
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                        JOptionPane.showMessageDialog(view, "Gagal mengubah data di database!", "Error", JOptionPane.ERROR_MESSAGE);
-                    }
-
-                    // Update tampilan tabel setelah data diubah
-                    view.updateTable(barangList);
-                } else {
-                    JOptionPane.showMessageDialog(view, "ID Barang tidak ditemukan!", "Error", JOptionPane.ERROR_MESSAGE);
-                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(view, "Gagal mengubah data di database!", "Error", JOptionPane.ERROR_MESSAGE);
             }
         } else {
-            JOptionPane.showMessageDialog(view, "ID Barang tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(view, "Data tidak valid!", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
     private void hapusData() {
         // Ambil ID Barang dari input dan hilangkan spasi tambahan
@@ -189,23 +176,27 @@ public class BarangController {
         String searchTerm = view.getSearchId().trim();
         System.out.println("Search Term: " + searchTerm); // Debugging output
 
-        // Pastikan searchTerm tidak null dan tidak kosong
         if (searchTerm != null && !searchTerm.isEmpty()) {
-            ArrayList<Barang> filteredList = new ArrayList<>();
-
             try (Connection conn = DataBaseConnector.connect()) {
-                // Query untuk mencari ID Barang atau Jenis Barang
-                String query = "SELECT * FROM barang WHERE idBarang LIKE ? OR jenisBarang LIKE ?";
+                String query = "SELECT * FROM barang WHERE idBarang = ?";
                 try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                    // Menambahkan wildcard (%) di awal dan akhir searchTerm untuk pencarian di database
-                    String searchPattern = "%" + searchTerm + "%";
-                    stmt.setString(1, searchPattern);
-                    stmt.setString(2, searchPattern);
+                    stmt.setString(1, searchTerm);  // Cari berdasarkan ID Barang
 
-                    // Eksekusi query
                     try (ResultSet rs = stmt.executeQuery()) {
-                        // Jika ada data, tambahkan ke filteredList
-                        while (rs.next()) {
+                        ArrayList<Barang> filteredList = new ArrayList<>();  // List untuk hasil pencarian
+
+                        if (rs.next()) {
+                            // Jika ID ditemukan, tampilkan data di kolom input
+                            view.setInputData(  // Mengisi kolom input dengan data yang ditemukan
+                                    rs.getString("idBarang"),
+                                    rs.getString("jenisBarang"),
+                                    rs.getInt("stokGudang"),
+                                    rs.getInt("barangMasuk"),
+                                    rs.getInt("barangKeluar"),
+                                    rs.getString("tanggal")
+                            );
+
+                            // Menambahkan hasil pencarian ke filteredList
                             filteredList.add(new Barang(
                                     rs.getString("idBarang"),
                                     rs.getString("jenisBarang"),
@@ -214,26 +205,18 @@ public class BarangController {
                                     rs.getInt("barangKeluar"),
                                     rs.getString("tanggal")
                             ));
+
+                        } else {
+                            JOptionPane.showMessageDialog(view, "ID Barang tidak ditemukan!", "Error", JOptionPane.ERROR_MESSAGE);
                         }
                     }
                 }
-
-                // Jika ada hasil pencarian, update tabel dengan filteredList
-                if (!filteredList.isEmpty()) {
-                    view.updateTable(filteredList);
-                } else {
-                    // Jika tidak ada hasil, tampilkan pesan "Data tidak ditemukan"
-                    view.setDisplayText("Data tidak ditemukan!");
-                }
-
             } catch (SQLException e) {
                 e.printStackTrace();
-                // Tampilkan pesan error jika query gagal
-                view.setDisplayText("Error saat mencari data di database!");
+                JOptionPane.showMessageDialog(view, "Error saat mencari data!", "Error", JOptionPane.ERROR_MESSAGE);
             }
         } else {
-            // Jika searchTerm kosong, tampilkan pesan
-            view.setDisplayText("Masukkan ID Barang untuk pencarian!");
+            JOptionPane.showMessageDialog(view, "Masukkan ID Barang untuk pencarian!", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

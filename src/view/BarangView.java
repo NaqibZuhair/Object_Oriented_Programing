@@ -6,6 +6,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import model.Barang;
 import controller.BarangController;
+import java.awt.event.ActionListener;  // Untuk ActionListener
+import java.awt.event.ActionEvent;     // Untuk ActionEvent
+
 
 public class BarangView extends JFrame {
     private JTextField idField, jenisField, stokField, masukField, keluarField, tanggalField, searchField;
@@ -48,7 +51,7 @@ public class BarangView extends JFrame {
         inputPanel.add(new JLabel("Barang Keluar:"));
         keluarField = new JTextField();
         inputPanel.add(keluarField);
-        inputPanel.add(new JLabel("Tanggal:"));
+        inputPanel.add(new JLabel("Tanggal (YYYY-MM-DD):"));
         tanggalField = new JTextField();
         inputPanel.add(tanggalField);
 
@@ -94,22 +97,33 @@ public class BarangView extends JFrame {
 
     public Barang getInputData() {
         try {
+            // Menggunakan format yang benar
             String tanggalFormatted = controller != null ? controller.formatDate(tanggalField.getText()) : tanggalField.getText();
+
             return new Barang(
                     idField.getText(),
                     jenisField.getText(),
                     Integer.parseInt(stokField.getText()),
                     Integer.parseInt(masukField.getText()),
                     Integer.parseInt(keluarField.getText()),
-                    tanggalFormatted
+                    tanggalFormatted  // Menggunakan tanggal yang telah diformat
             );
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Stok, Barang Masuk, dan Barang Keluar harus berupa angka!", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
         } catch (ParseException e) {
-            JOptionPane.showMessageDialog(this, "Format tanggal salah! Harus dalam format dd-MM-yyyy.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);  // Menampilkan pesan kesalahan yang lebih jelas
             return null;
         }
+    }
+
+    public void setInputData(String idBarang, String jenisBarang, int stokGudang, int barangMasuk, int barangKeluar, String tanggal) {
+        idField.setText(idBarang);
+        jenisField.setText(jenisBarang);
+        stokField.setText(String.valueOf(stokGudang));
+        masukField.setText(String.valueOf(barangMasuk));
+        keluarField.setText(String.valueOf(barangKeluar));
+        tanggalField.setText(tanggal);
     }
 
     public String getSearchId() {
@@ -134,14 +148,17 @@ public class BarangView extends JFrame {
                         parts[2].replace("Stok Gudang: ", ""),
                         parts[3].replace("Barang Masuk: ", ""),
                         parts[4].replace("Barang Keluar: ", ""),
-                        parts[5].replace("Tanggal: ", "")
+                        parts[5].replace("Tanggal (YYYY-MM-DD): ", "")
                 });
             }
         }
     }
 
     public void updateTable(java.util.List<Barang> barangList) {
-        tableModel.setRowCount(0);
+        DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
+        tableModel.setRowCount(0);  // Clear existing data
+
+        // Menambahkan data terbaru ke tabel
         for (Barang barang : barangList) {
             tableModel.addRow(new Object[]{
                     barang.getIdBarang(),
