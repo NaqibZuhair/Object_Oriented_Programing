@@ -92,13 +92,28 @@ public class BarangController {
     }
 
     private void editData() {
-        String id = view.getSearchId();
-        Barang newData = view.getInputData();
-        if (newData != null && !id.isEmpty()) {
-            for (int i = 0; i < barangList.size(); i++) {
-                if (barangList.get(i).getIdBarang().equals(id)) {
-                    barangList.set(i, newData);
+        // Ambil ID Barang dari input
+        String id = view.getSearchId().trim();
+        System.out.println("Search ID: " + id); // Debugging output
 
+        if (id != null && !id.isEmpty()) {
+            // Ambil data baru yang dimasukkan pengguna
+            Barang newData = view.getInputData(); // Ambil data baru dari form input
+
+            if (newData != null) {
+                boolean found = false;
+                // Cari barang dengan ID yang sesuai di barangList
+                for (int i = 0; i < barangList.size(); i++) {
+                    System.out.println("Checking ID: " + barangList.get(i).getIdBarang() + " vs " + id); // Debugging output
+                    if (barangList.get(i).getIdBarang().equals(id)) {
+                        found = true;
+                        barangList.set(i, newData);  // Mengganti barang lama dengan yang baru
+                        break;
+                    }
+                }
+
+                if (found) {
+                    // Update data di database
                     try (Connection conn = DataBaseConnector.connect()) {
                         String query = "UPDATE barang SET jenisBarang = ?, stokGudang = ?, barangMasuk = ?, barangKeluar = ?, tanggal = ? WHERE idBarang = ?";
                         try (PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -107,73 +122,121 @@ public class BarangController {
                             stmt.setInt(3, newData.getBarangMasuk());
                             stmt.setInt(4, newData.getBarangKeluar());
                             stmt.setString(5, newData.getTanggal());
-                            stmt.setString(6, id);
+                            stmt.setString(6, id); // ID Barang untuk menentukan data yang akan diupdate
 
-                            stmt.executeUpdate();
-                            JOptionPane.showMessageDialog(view, "Data berhasil diubah!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+                            // Debugging: Menampilkan query yang dijalankan
+                            System.out.println("Executing query: " + stmt.toString());
+
+                            int rowsAffected = stmt.executeUpdate(); // Eksekusi query UPDATE
+                            if (rowsAffected > 0) {
+                                JOptionPane.showMessageDialog(view, "Data berhasil diubah!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+                            } else {
+                                JOptionPane.showMessageDialog(view, "Gagal mengubah data!", "Error", JOptionPane.ERROR_MESSAGE);
+                            }
                         }
                     } catch (SQLException e) {
                         e.printStackTrace();
-                        JOptionPane.showMessageDialog(view, "Gagal mengubah data!", "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(view, "Gagal mengubah data di database!", "Error", JOptionPane.ERROR_MESSAGE);
                     }
 
-                    updateDisplay();
-                    return;
+                    // Update tampilan tabel setelah data diubah
+                    view.updateTable(barangList);
+                } else {
+                    JOptionPane.showMessageDialog(view, "ID Barang tidak ditemukan!", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
-            JOptionPane.showMessageDialog(view, "Data tidak ditemukan!", "Error", JOptionPane.ERROR_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(view, "ID Barang tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void hapusData() {
-        String id = view.getSearchId();
-        if (!id.isEmpty()) {
-            for (int i = 0; i < barangList.size(); i++) {
-                if (barangList.get(i).getIdBarang().equals(id)) {
-                    barangList.remove(i);
+        // Ambil ID Barang dari input dan hilangkan spasi tambahan
+        String id = view.getSearchId().trim();
+        System.out.println("ID yang dicari: " + id); // Debugging output
 
-                    try (Connection conn = DataBaseConnector.connect()) {
-                        String query = "DELETE FROM barang WHERE idBarang = ?";
-                        try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                            stmt.setString(1, id);
-                            stmt.executeUpdate();
-                            JOptionPane.showMessageDialog(view, "Data berhasil dihapus!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
-                        }
-                    } catch (SQLException e) {
-                        e.printStackTrace();
+        if (!id.isEmpty()) {
+            try (Connection conn = DataBaseConnector.connect()) {
+                // Query untuk menghapus barang dari database berdasarkan ID Barang
+                String query = "DELETE FROM barang WHERE idBarang = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    stmt.setString(1, id); // Set ID Barang yang akan dihapus
+
+                    // Debugging untuk memeriksa ID yang dikirim ke query
+                    System.out.println("Menjalankan query untuk menghapus ID: " + id);
+
+                    int rowsAffected = stmt.executeUpdate(); // Eksekusi query
+
+                    if (rowsAffected > 0) {
+                        JOptionPane.showMessageDialog(view, "Data berhasil dihapus!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
                         JOptionPane.showMessageDialog(view, "Gagal menghapus data!", "Error", JOptionPane.ERROR_MESSAGE);
                     }
-
-                    updateDisplay();
-                    return;
                 }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(view, "Gagal menghapus data di database!", "Error", JOptionPane.ERROR_MESSAGE);
             }
-            JOptionPane.showMessageDialog(view, "Data tidak ditemukan!", "Error", JOptionPane.ERROR_MESSAGE);
+
+            updateDisplay(); // Update tampilan tabel setelah data dihapus
         } else {
             JOptionPane.showMessageDialog(view, "ID Barang tidak boleh kosong!", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void cariData() {
-        String searchTerm = view.getSearchId();
-        if (!searchTerm.isEmpty()) {
+        // Ambil search term dari input dan hilangkan spasi tambahan
+        String searchTerm = view.getSearchId().trim();
+        System.out.println("Search Term: " + searchTerm); // Debugging output
+
+        // Pastikan searchTerm tidak null dan tidak kosong
+        if (searchTerm != null && !searchTerm.isEmpty()) {
             ArrayList<Barang> filteredList = new ArrayList<>();
-            for (Barang barang : barangList) {
-                if (barang.getIdBarang().equals(searchTerm) || barang.getJenisBarang().toLowerCase().contains(searchTerm.toLowerCase())) {
-                    filteredList.add(barang);
+
+            try (Connection conn = DataBaseConnector.connect()) {
+                // Query untuk mencari ID Barang atau Jenis Barang
+                String query = "SELECT * FROM barang WHERE idBarang LIKE ? OR jenisBarang LIKE ?";
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    // Menambahkan wildcard (%) di awal dan akhir searchTerm untuk pencarian di database
+                    String searchPattern = "%" + searchTerm + "%";
+                    stmt.setString(1, searchPattern);
+                    stmt.setString(2, searchPattern);
+
+                    // Eksekusi query
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        // Jika ada data, tambahkan ke filteredList
+                        while (rs.next()) {
+                            filteredList.add(new Barang(
+                                    rs.getString("idBarang"),
+                                    rs.getString("jenisBarang"),
+                                    rs.getInt("stokGudang"),
+                                    rs.getInt("barangMasuk"),
+                                    rs.getInt("barangKeluar"),
+                                    rs.getString("tanggal")
+                            ));
+                        }
+                    }
                 }
-            }
-            if (!filteredList.isEmpty()) {
-                view.updateTable(filteredList);
-            } else {
-                view.setDisplayText("Data tidak ditemukan!");
+
+                // Jika ada hasil pencarian, update tabel dengan filteredList
+                if (!filteredList.isEmpty()) {
+                    view.updateTable(filteredList);
+                } else {
+                    // Jika tidak ada hasil, tampilkan pesan "Data tidak ditemukan"
+                    view.setDisplayText("Data tidak ditemukan!");
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                // Tampilkan pesan error jika query gagal
+                view.setDisplayText("Error saat mencari data di database!");
             }
         } else {
+            // Jika searchTerm kosong, tampilkan pesan
             view.setDisplayText("Masukkan ID Barang untuk pencarian!");
         }
     }
+
 
     private void updateDisplay() {
         try (Connection conn = DataBaseConnector.connect()) {

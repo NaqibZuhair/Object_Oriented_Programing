@@ -24,16 +24,16 @@
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="c6bb2042-5fd7-4507-9349-38909130e019">
-      <console name="COMPANY ASSIGNMENT" type="STANDARD" schema="pbo_inventori_inhuntani" session="Main"><![CDATA[select * FROM BARANG;]]></console>
+      <console name="COMPANY ASSIGNMENT" type="STANDARD" schema="pbo_inventori_inhuntani" session="Main"><![CDATA[select * FROM BARANG;
+
+DELETE FROM barang WHERE idBarang = 'B011';]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files>
-      <object connection-id="c6bb2042-5fd7-4507-9349-38909130e019" object-ref="consoles/COMPANY ASSIGNMENT" />
-    </open-files>
+    <open-files />
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="c6bb2042-5fd7-4507-9349-38909130e019" />
