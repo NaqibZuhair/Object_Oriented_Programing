@@ -3,13 +3,18 @@ package view;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import model.Transaksi;
+import Model.Transaksi;
+import java.sql.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import controller.TransaksiController;
 
 public class TransaksiView extends JFrame {
     private JTextField idField, tanggalField, pelangganField, jenisField, jumlahField, statusField, searchField;
     private JButton tambahButton, editButton, hapusButton, cariButton;
     private JTable table;
     private DefaultTableModel tableModel;
+    private TransaksiController controller;
 
     public TransaksiView() {
         setTitle("Manajemen Transaksi");
@@ -33,7 +38,7 @@ public class TransaksiView extends JFrame {
         inputPanel.add(new JLabel("ID Transaksi:"));
         idField = new JTextField();
         inputPanel.add(idField);
-        inputPanel.add(new JLabel("Tanggal:"));
+        inputPanel.add(new JLabel("Tanggal (YYYY-MM-DD):"));
         tanggalField = new JTextField();
         inputPanel.add(tanggalField);
         inputPanel.add(new JLabel("Nama Pelanggan:"));
@@ -91,23 +96,40 @@ public class TransaksiView extends JFrame {
 
     public Transaksi getInputData() {
         try {
+            // Pastikan kita menggunakan format yang benar
+            String tanggalFormatted = controller != null ? controller.formatDate(tanggalField.getText()) : tanggalField.getText();
+
             return new Transaksi(
-                idField.getText(),
-                tanggalField.getText(),
-                pelangganField.getText(),
-                jenisField.getText(),
-                Integer.parseInt(jumlahField.getText()),
-                statusField.getText()
+                    idField.getText(),              // ID Transaksi
+                    tanggalFormatted,               // Tanggal
+                    pelangganField.getText(),       // Nama Pelanggan
+                    jenisField.getText(),           // Jenis Barang
+                    Integer.parseInt(jumlahField.getText()), // Jumlah (int)
+                    statusField.getText()           // Status Pembayaran
             );
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Jumlah harus berupa angka!", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
+        } catch (ParseException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
         }
     }
+
 
     public String getSearchId() {
         return searchField.getText();
     }
+
+    public void setInputData(String idTransaksi, String tanggal, String namaPelanggan, String jenisBarang, int jumlah, String statusPembayaran) {
+        idField.setText(idTransaksi);
+        tanggalField.setText(tanggal);
+        pelangganField.setText(namaPelanggan);
+        jenisField.setText(jenisBarang);
+        jumlahField.setText(String.valueOf(jumlah));
+        statusField.setText(statusPembayaran);
+    }
+
 
     public void setDisplayText(String text) {
         tableModel.setRowCount(0);
@@ -132,7 +154,7 @@ public class TransaksiView extends JFrame {
     }
 
     public void updateTable(java.util.List<Transaksi> transaksiList) {
-        tableModel.setRowCount(0);
+        tableModel.setRowCount(0);  // Menghapus semua data yang ada di tabel
         for (Transaksi transaksi : transaksiList) {
             tableModel.addRow(new Object[]{
                     transaksi.getIdTransaksi(),
@@ -144,6 +166,8 @@ public class TransaksiView extends JFrame {
             });
         }
     }
+
+
 
     public JButton getTambahButton() { return tambahButton; }
     public JButton getEditButton() { return editButton; }

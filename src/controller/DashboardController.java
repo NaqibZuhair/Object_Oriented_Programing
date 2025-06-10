@@ -6,7 +6,7 @@ import view.TransaksiView;
 import view.OperasionalView;
 import view.LaporanView;
 import model.Barang;
-import model.Transaksi;
+import Model.Transaksi;
 import model.Operasional;
 import model.Laporan;
 import javax.swing.*;
@@ -95,6 +95,25 @@ public class DashboardController {
                     ));
                 }
             }
+
+            // Query untuk mengambil data transaksi
+            String queryTransaksi = "SELECT * FROM transaksi";
+            try (PreparedStatement stmtTransaksi = conn.prepareStatement(queryTransaksi);
+                 ResultSet rsTransaksi = stmtTransaksi.executeQuery()) {
+                transaksiList.clear();  // Pastikan transaksiList kosong sebelum mengisi data baru
+                while (rsTransaksi.next()) {
+                    transaksiList.add(new Transaksi(
+                            rsTransaksi.getString("idTransaksi"),
+                            rsTransaksi.getString("tanggal"),
+                            rsTransaksi.getString("nama_Pelanggan"),
+                            rsTransaksi.getString("jenis_Barang"),
+                            rsTransaksi.getInt("jumlah"),
+                            rsTransaksi.getString("status_Bayar")
+                    ));
+                }
+            }
+
+
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(view, "Error fetching data from database!", "Error", JOptionPane.ERROR_MESSAGE);
