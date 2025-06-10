@@ -7,7 +7,7 @@ import view.OperasionalView;
 import view.LaporanView;
 import model.Barang;
 import Model.Transaksi;
-import model.Operasional;
+import Model.Operasional;
 import model.Laporan;
 import javax.swing.*;
 import java.awt.event.*;

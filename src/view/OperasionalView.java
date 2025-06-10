@@ -3,13 +3,17 @@ package view;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import model.Operasional;
+import Model.Operasional;
+import controller.OperasionalController;
+
+import java.sql.*;
 
 public class OperasionalView extends JFrame {
     private JTextField idField, tanggalField, mobilField, supirField, totalField, searchField;
     private JButton tambahButton, editButton, hapusButton, cariButton;
     private JTable table;
     private DefaultTableModel tableModel;
+    private OperasionalController controller;
 
     public OperasionalView() {
         setTitle("Manajemen Operasional");
@@ -33,7 +37,7 @@ public class OperasionalView extends JFrame {
         inputPanel.add(new JLabel("ID Transaksi:"));
         idField = new JTextField();
         inputPanel.add(idField);
-        inputPanel.add(new JLabel("Tanggal:"));
+        inputPanel.add(new JLabel("Tanggal (YYYY-MM-DD):"));
         tanggalField = new JTextField();
         inputPanel.add(tanggalField);
         inputPanel.add(new JLabel("Biaya Mobil:"));
@@ -44,7 +48,8 @@ public class OperasionalView extends JFrame {
         inputPanel.add(supirField);
         inputPanel.add(new JLabel("Total Biaya:"));
         totalField = new JTextField();
-        inputPanel.add(totalField);
+        totalField.setEditable(false);  // Tidak bisa diubah
+        inputPanel.add(totalField);  // Menambahkan ke panel input
 
         // Table
         String[] columns = {"ID Transaksi", "Tanggal", "Biaya Mobil", "Biaya Supir", "Total Biaya"};
@@ -85,20 +90,31 @@ public class OperasionalView extends JFrame {
         });
     }
 
+    public void setInputData(String idTransaksi, String tanggal, double biayaMobil, double biayaSupir, double totalBiaya) {
+        idField.setText(idTransaksi);        // Set ID Transaksi
+        tanggalField.setText(tanggal);       // Set Tanggal
+        mobilField.setText(String.valueOf(biayaMobil));  // Set Biaya Mobil
+        supirField.setText(String.valueOf(biayaSupir));  // Set Biaya Supir
+        totalField.setText(String.valueOf(totalBiaya));  // Set Total Biaya
+    }
+
+
+
     public Operasional getInputData() {
         try {
             return new Operasional(
-                idField.getText(),
-                tanggalField.getText(),
-                Double.parseDouble(mobilField.getText()),
-                Double.parseDouble(supirField.getText()),
-                Double.parseDouble(totalField.getText())
+                    idField.getText(),
+                    tanggalField.getText(),
+                    Double.parseDouble(mobilField.getText()),
+                    Double.parseDouble(supirField.getText()),
+                    0 // Total Biaya dihitung otomatis
             );
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Biaya harus berupa angka!", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
         }
     }
+
 
     public String getSearchId() {
         return searchField.getText();
