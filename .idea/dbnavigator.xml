@@ -27,8 +27,7 @@
       <console name="COMPANY ASSIGNMENT" type="STANDARD" schema="pbo_inventori_inhuntani" session="Main"><![CDATA[select * FROM BARANG;
 select * from transaksi;
 select * from operasional;
-
-DELETE FROM barang WHERE idBarang = 'B011';]]></console>
+select * from laporan;]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">

@@ -3,13 +3,16 @@ package view;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import model.Laporan;
+import Model.Laporan;
+import controller.LaporanController;
+import java.text.ParseException;
 
 public class LaporanView extends JFrame {
     private JTextField idField, alamatField, deskripsiField, tanggalField, searchField;
     private JButton tambahButton, editButton, hapusButton, cariButton;
     private JTable table;
     private DefaultTableModel tableModel;
+    private LaporanController controller;
 
     public LaporanView() {
         setTitle("Manajemen Laporan");
@@ -22,7 +25,7 @@ public class LaporanView extends JFrame {
 
         // Search Panel
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.add(new JLabel("Cari (ID/Alamat):"));
+        searchPanel.add(new JLabel("Cari (ID:"));
         searchField = new JTextField(20);
         cariButton = new JButton("Cari");
         searchPanel.add(searchField);
@@ -81,13 +84,32 @@ public class LaporanView extends JFrame {
         });
     }
 
+    public void setInputData(String idLaporan, String Alamat, String deskripsi, String tanggal) {
+        idField.setText(idLaporan);
+        alamatField.setText(Alamat);
+        deskripsiField.setText(deskripsi);
+        tanggalField.setText(tanggal);
+    }
+
+
     public Laporan getInputData() {
-        return new Laporan(
-            idField.getText(),
-            alamatField.getText(),
-            deskripsiField.getText(),
-            tanggalField.getText()
-        );
+        try {
+            // Pastikan kita menggunakan format yang benar untuk tanggal
+            String tanggalFormatted = controller != null ? controller.formatDate(tanggalField.getText()) : tanggalField.getText();
+
+            return new Laporan(
+                    idField.getText(),              // ID Laporan
+                    alamatField.getText(),     // Alamat Kirim
+                    deskripsiField.getText(),       // Deskripsi
+                    tanggalFormatted               // Tanggal
+            );
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Format input tidak valid!", "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        } catch (ParseException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
     }
 
     public String getSearchId() {

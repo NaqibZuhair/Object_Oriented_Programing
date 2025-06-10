@@ -8,7 +8,7 @@ import view.LaporanView;
 import model.Barang;
 import Model.Transaksi;
 import Model.Operasional;
-import model.Laporan;
+import Model.Laporan;
 import javax.swing.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -113,6 +113,36 @@ public class DashboardController {
                 }
             }
 
+            // Query untuk mengambil data operasional
+            String queryOperasional = "SELECT * FROM operasional";
+            try (PreparedStatement stmtOperasional = conn.prepareStatement(queryOperasional);
+                 ResultSet rsOperasional = stmtOperasional.executeQuery()) {
+                operasionalList.clear();  // Pastikan operasionalList kosong sebelum mengisi data baru
+                while (rsOperasional.next()) {
+                    operasionalList.add(new Operasional(
+                            rsOperasional.getString("idTransaksi"),
+                            rsOperasional.getString("tanggal"),
+                            rsOperasional.getDouble("biaya_Mobil"),
+                            rsOperasional.getDouble("biaya_Supir"),
+                            rsOperasional.getDouble("total_Biaya")
+                    ));
+                }
+            }
+
+            // Query untuk mengambil data laporan
+            String queryLaporan = "SELECT * FROM laporan";
+            try (PreparedStatement stmtLaporan = conn.prepareStatement(queryLaporan);
+                 ResultSet rsLaporan = stmtLaporan.executeQuery()) {
+                laporanList.clear();  // Pastikan laporanList kosong sebelum mengisi data baru
+                while (rsLaporan.next()) {
+                    laporanList.add(new Laporan(
+                            rsLaporan.getString("idLaporan"),       // ID Laporan
+                            rsLaporan.getString("Alamat_Kirim"),    // Alamat Kirim
+                            rsLaporan.getString("Deskripsi"),       // Deskripsi
+                            rsLaporan.getString("Tanggal")          // Tanggal
+                    ));
+                }
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
